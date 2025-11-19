@@ -1,0 +1,5 @@
+# Dependencias básicas para un servicio FastAPI
+fastapi
+uvicorn
+pymongo
+motor

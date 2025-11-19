@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="form-container">
+  <h2 class="form-title">{{ title if title else 'Crear Nueva Experiencia' }}</h2>
+  <form method="post" action="{{ url_for('edit_experience', exp_id=experience['id']) if experience else '/experiences/new' }}" class="form">
+    <label for="title">Título</label>
+    <input type="text" name="title" id="title" required class="form-input" value="{{ experience['title'] if experience else '' }}">
+
+    <label for="description">Descripción</label>
+    <textarea name="description" id="description" required class="form-input">{{ experience['description'] if experience else '' }}</textarea>
+
+    <label for="price">Precio</label>
+    <input type="number" name="price" id="price" required class="form-input" value="{{ experience['price'] if experience else '' }}">
+
+    <button type="submit" class="form-btn">{{ 'Guardar Cambios' if experience else 'Crear Experiencia' }}</button>
+  </form>
+</div>
+{% endblock %}

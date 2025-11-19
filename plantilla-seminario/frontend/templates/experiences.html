@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Experiencias disponibles</h2>
+    {% if experiences %}
+        <div class="grid">
+        {% for exp in experiences %}
+            <article class="card">
+                <h3>{{ exp.title or exp.get('title') }}</h3>
+                <p>{{ exp.description or exp.get('description') }}</p>
+                <p><strong>Guía:</strong> {{ exp.guide or exp.get('guide', 'N/A') }}</p>
+                <p><strong>Precio:</strong> ${{ exp.price or exp.get('price', '0') }}</p>
+                <div class="actions">
+                    {% if session.role == 'guia' %}
+                        <a class="btn warning" href="{{ url_for('edit_experience', exp_id=exp.get('id') or exp.get('title')) }}">Editar</a>
+                        <form class="inline-form" action="{{ url_for('delete_experience', exp_id=exp.get('id') or exp.get('title')) }}" method="post">
+                            <button type="submit" class="btn danger" onclick="return confirm('¿Seguro que deseas eliminar esta experiencia?');">Eliminar</button>
+                        </form>
+                    {% else %}
+                        <a class="btn" href="{{ url_for('reserve', exp_id=exp.get('id') or exp.get('title')) }}">Reservar</a>
+                        <a class="btn outline" href="{{ url_for('rate', exp_id=exp.get('id') or exp.get('title')) }}">Valorar</a>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+        </div>
+    {% else %}
+        {% if session.role == 'guide' %}
+            <p>No has creado ninguna experiencia aún. ¡Crea tu primera experiencia!</p>
+        {% else %}
+            <p>No hay experiencias disponibles.</p>
+        {% endif %}
+    {% endif %}
+
+{% endblock %}

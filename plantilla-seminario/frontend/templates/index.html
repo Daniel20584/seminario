@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>¡Bienvenido al Proyecto del Seminario!</h2>
+    <p>Este es el frontend de tu proyecto. Utiliza el API Gateway para interactuar con los microservicios.</p>
+
+    <h3>Estado de los microservicios</h3>
+    {% if statuses %}
+        <ul>
+        {% for svc, status in statuses.items() %}
+            <li><strong>{{ svc }}</strong>: {{ status }}</li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No hay información de estado disponible.</p>
+    {% endif %}
+
+    <a href="{{ url_for('new_item') }}">Crear un nuevo ítem</a>
+
+{% endblock %}

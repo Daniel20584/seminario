@@ -1,0 +1,40 @@
+# Este archivo contiene las variables de entorno necesarias para la configuración
+# de los servicios y bases de datos del proyecto.
+# Renombra este archivo a ".env" y ajusta los valores según sea necesario.
+
+# CONFIGURACIÓN GENERAL
+
+# URL del API Gateway. El frontend se conectará a esta dirección.
+# En un entorno de Docker Compose, el nombre del servicio es el hostname.
+API_GATEWAY_URL=http://api-gateway:8000
+
+# VARIABLES PARA EL SERVICIO DE AUTENTICACIÓN
+
+# La URL de la base de datos de autenticación (MongoDB).
+# El nombre del host debe coincidir con el nombre del servicio de la base de datos en docker-compose.yml.
+AUTH_SERVICE_URL=http://auth-service:8001
+AUTH_DATABASE_URL=mongodb://auth-db:27017/auth_db
+
+# VARIABLES PARA LOS MICROSERVICIOS DE LOS ESTUDIANTES
+
+# TODO: Ajusta las variables de entorno para los servicios
+#       y bases de datos de tu tema elegido.
+#
+#       Asegúrate de que los nombres de los hosts (ej. "service1-db")
+#       coincidan con los nombres de los servicios en tu docker-compose.yml.
+#
+
+# URL del servicio1 (FastAPI)
+NAME1_SERVICE_URL=http://service1-service:8002
+# URL de la base de datos1 (PostgreSQL)
+NAME1_DATABASE_URL=postgresql://user:password@service1-db:5432/catalog_db
+
+# URL del servicio2 (FastAPI)
+NAME2_SERVICE_URL=http://service2-service:8002
+# URL de la base de datos2 (PostgreSQL)
+NAME2_DATABASE_URL=postgresql://user:password@service2-db:5432/catalog_db
+
+# URL del servicio3 (FastAPI)
+NAME3_SERVICE_URL=http://service3-service:8002
+# URL de la base de datos3 (PostgreSQL)
+NAME3_DATABASE_URL=postgresql://user:password@service3-db:5432/catalog_db

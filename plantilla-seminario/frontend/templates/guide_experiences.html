@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="experiences-container">
+  <h2 class="experiences-title">Mis Experiencias</h2>
+  {% if experiences %}
+    <ul class="experiences-list">
+      {% for exp in experiences %}
+        <li class="experience-item">
+          <h3>{{ exp.title }}</h3>
+          <p>{{ exp.description }}</p>
+          <p><strong>Ubicación:</strong> {{ exp.location }}</p>
+          <p><strong>Precio:</strong> ${{ exp.price }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No has creado ninguna experiencia aún.</p>
+  {% endif %}
+</div>
+{% endblock %}

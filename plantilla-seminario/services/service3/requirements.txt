@@ -1,0 +1,5 @@
+# Dependencias mínimas para el servicio de valoraciones (FastAPI + Mongo)
+fastapi
+uvicorn[standard]
+motor
+pymongo

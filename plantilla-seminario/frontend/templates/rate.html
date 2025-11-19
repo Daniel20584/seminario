@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Valorar experiencia {{ exp_id }}</h2>
+    <form method="post">
+        <label for="user_id">Tu nombre (id):</label>
+        <input type="text" id="user_id" name="user_id" placeholder="usuario123">
+
+        <label for="rating">Puntuación (1-5):</label>
+        <select id="rating" name="rating">
+            <option value="5">5</option>
+            <option value="4">4</option>
+            <option value="3">3</option>
+            <option value="2">2</option>
+            <option value="1">1</option>
+        </select>
+
+        <label for="comment">Comentario:</label>
+        <textarea id="comment" name="comment"></textarea>
+
+        <button class="btn" type="submit">Enviar valoración</button>
+    </form>
+{% endblock %}

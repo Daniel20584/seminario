@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>{{ title }}</h1>
+            <nav>
+                <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+            </nav>
+        </div>
+    </header>
+    <main>
+        <div class="container">
+            <h2>Gestión de Experiencias</h2>
+            <p>Aquí puedes crear, editar y gestionar tus experiencias.</p>
+            <a href="/experiences/new">Crear nueva experiencia</a>
+            <hr>
+            {% if experiences %}
+                <h3>Tus experiencias creadas</h3>
+                <div class="grid">
+                {% for exp in experiences %}
+                    {% if exp is mapping %}
+                        <article class="card">
+                            <h4>{{ exp.title }}</h4>
+                            <p>{{ exp.description }}</p>
+                            <p><strong>Precio:</strong> ${{ exp.price }}</p>
+                        </article>
+                    {% endif %}
+                {% endfor %}
+                </div>
+            {% else %}
+                <p>No has creado ninguna experiencia aún.</p>
+            {% endif %}
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Marketplace de Experiencias Turísticas</p>
+        </div>
+    </footer>
+</body>
+</html>
