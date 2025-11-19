@@ -14,8 +14,10 @@ db = client.ratings_db
 ratings_collection = db.get_collection("ratings")
 
 # Pydantic models
+
 class Rating(BaseModel):
     user_id: str
+    username: str
     experience_id: str
     comment: str
     rating: int
@@ -28,6 +30,7 @@ def rating_helper(rating) -> dict:
     return {
         "id": str(rating["_id"]),
         "user_id": rating["user_id"],
+        "username": rating.get("username", ""),
         "experience_id": rating["experience_id"],
         "comment": rating["comment"],
         "rating": rating["rating"],

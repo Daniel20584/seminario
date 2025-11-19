@@ -14,7 +14,9 @@ uvicorn
 
 # Si usas MongoDB:
 # motor
-# pymongo
+pymongo
 
 # Si usas Redis:
 # redis
+pymongo
+requests

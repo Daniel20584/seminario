@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2>Mis reservas</h2>
+    {% if reservations and reservations|length > 0 %}
+        <div class="grid" style="margin-bottom: 4em;">
+        {% for r in reservations %}
+            <article class="card">
+                <h3>{{ r.title }}</h3>
+                <p><strong>Fecha:</strong> {{ r.date }}</p>
+                <p><strong>Notas:</strong> {{ r.notes }}</p>
+                <div class="actions">
+                    {% if r.attended and r.title != 'Experiencia no disponible' %}
+                        <a class="btn outline" href="/experiences/{{ r.experience_id }}/rate">Valorar</a>
+                    {% elif r.title == 'Experiencia no disponible' %}
+                        <button class="btn outline" disabled>Valorar no disponible</button>
+                    {% else %}
+                        <form method="post" action="/confirm-attended/{{ r.id }}" style="display:inline">
+                            <button class="btn" type="submit">Clic aquí si ya viviste la experiencia</button>
+                        </form>
+                        <button class="btn outline" disabled>Valorar (confirma asistencia primero)</button>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+        </div>
+    {% else %}
+        <p>No tienes reservas todavía.</p>
+    {% endif %}
+    <div style="margin-bottom: 5em;"></div>
+{% endblock %}

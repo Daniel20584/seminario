@@ -1,6 +1,9 @@
 from fastapi import FastAPI, APIRouter, Request, HTTPException
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 import requests
+import logging
+logging.basicConfig(level=logging.WARNING)
 import os
 
 # Define la instancia de la aplicación FastAPI.
@@ -50,8 +53,9 @@ async def forward_get(service_name: str, path: str, request: Request):
     
     try:
         response = requests.get(service_url, params=request.query_params, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to {service_name}: {e}")
 
@@ -119,10 +123,21 @@ async def forward_post(service_name: str, path: str, request: Request):
     service_url = f"{SERVICES[service_name]}/{path}"
     
     try:
-        # Pasa los datos JSON del cuerpo de la petición.
-        response = requests.post(service_url, json=await request.json(), timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        # Intenta obtener JSON del body; si no es JSON (form data or empty), reenvía raw body or no body.
+        try:
+            body_json = await request.json()
+            response = requests.post(service_url, json=body_json, timeout=REQUEST_TIMEOUT)
+        except Exception:
+            raw_body = await request.body()
+            if raw_body:
+                headers = {k: v for k, v in request.headers.items()}
+                # Forward raw body preserving content-type header
+                response = requests.post(service_url, data=raw_body, headers={"content-type": headers.get("content-type")}, timeout=REQUEST_TIMEOUT)
+            else:
+                response = requests.post(service_url, timeout=REQUEST_TIMEOUT)
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to {service_name}: {e}")
 
@@ -132,8 +147,9 @@ async def forward_experiences(path: str, request: Request):
     service_url = f"{SERVICES['experiences']}/{path}"
     try:
         response = requests.get(service_url, params=request.query_params, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to experiences: {e}")
 
@@ -143,8 +159,9 @@ async def forward_reservations(path: str, request: Request):
     service_url = f"{SERVICES['reservations']}/{path}"
     try:
         response = requests.get(service_url, params=request.query_params, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to reservations: {e}")
 
@@ -154,8 +171,9 @@ async def forward_ratings(path: str, request: Request):
     service_url = f"{SERVICES['ratings']}/{path}"
     try:
         response = requests.get(service_url, params=request.query_params, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to ratings: {e}")
 
@@ -164,9 +182,11 @@ async def forward_ratings(path: str, request: Request):
 async def forward_experiences_post(path: str, request: Request):
     service_url = f"{SERVICES['experiences']}/{path}"
     try:
-        response = requests.post(service_url, json=await request.json(), timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        body_json = await request.json()
+        response = requests.post(service_url, json=body_json, timeout=REQUEST_TIMEOUT)
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding request to experiences: {e}")
 
@@ -179,8 +199,9 @@ async def forward_put(service_name: str, path: str, request: Request):
     try:
         body = await request.json()
         response = requests.put(service_url, json=body, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding PUT to {service_name}: {e}")
 
@@ -192,8 +213,9 @@ async def forward_delete(service_name: str, path: str, request: Request):
     service_url = f"{SERVICES[service_name]}/{path}"
     try:
         response = requests.delete(service_url, timeout=REQUEST_TIMEOUT)
-        response.raise_for_status()
-        return response.json()
+        content = response.content
+        content_type = response.headers.get("content-type", "application/json")
+        return Response(content=content, status_code=response.status_code, media_type=content_type)
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error forwarding DELETE to {service_name}: {e}")
 
@@ -205,3 +227,5 @@ app.include_router(router)
 @app.get("/health")
 def health_check():
     return {"status": "ok", "message": "API Gateway is running."}
+
+

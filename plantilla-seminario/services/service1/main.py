@@ -41,7 +41,7 @@ def list_experiences(guide: str = None):
 @app.post("/experiences")
 def create_experience(exp: Experience):
     experiences_collection.insert_one(exp.dict())
-    return {"msg": "Experiencia creada", "experience": exp}
+    return {"msg": "Experiencia creada", "experience": exp.dict()}
 
 
 @app.get("/experiences/{exp_id}")
@@ -61,7 +61,7 @@ def update_experience(exp_id: str, exp: Experience):
         {"$set": exp.dict()}
     )
     if result.modified_count:
-        return {"msg": "Experiencia actualizada"}
+        return {"msg": "Experiencia actualizada", "experience": exp.dict()}
     return {"error": "No se pudo actualizar la experiencia"}, 404
 
 

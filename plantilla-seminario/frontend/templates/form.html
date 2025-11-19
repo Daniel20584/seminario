@@ -12,6 +12,18 @@
     <label for="price">Precio</label>
     <input type="number" name="price" id="price" required class="form-input" value="{{ experience['price'] if experience else '' }}">
 
+    <label for="cupo">Cupo máximo</label>
+    <input type="number" name="cupo" id="cupo" required min="1" class="form-input" value="{{ experience['cupo'] if experience and experience['cupo'] is defined else '' }}">
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var cupoInput = document.getElementById('cupo');
+        if (cupoInput) {
+          cupoInput.setAttribute('required', 'required');
+          cupoInput.setAttribute('min', '1');
+        }
+      });
+    </script>
+
     <button type="submit" class="form-btn">{{ 'Guardar Cambios' if experience else 'Crear Experiencia' }}</button>
   </form>
 </div>

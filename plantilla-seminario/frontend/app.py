@@ -37,14 +37,27 @@ def guide_panel():
         flash("No se pudo identificar al guía logueado.", "danger")
         return render_template("guide_panel.html", title="Panel de Guía", experiences=[])
     consulta_url = f"{API_GATEWAY_URL}/api/v1/experiences/experiences?guide={guide}"
+    experiences = []
+    ratings = []
     try:
         resp = requests.get(consulta_url, timeout=5)
         data = resp.json()
         experiences = data.get("experiences") or data
+        # Obtener IDs de experiencias del guía
+        exp_ids = [exp["id"] for exp in experiences if "id" in exp]
+        # Consultar todas las valoraciones
+        resp_ratings = requests.get(f"{API_GATEWAY_URL}/api/v1/ratings/ratings", timeout=5)
+        ratings_data = resp_ratings.json()
+        # Filtrar valoraciones solo de experiencias del guía
+        ratings = [r for r in ratings_data if r.get("experience_id") in exp_ids]
+        # Enriquecer con nombre de experiencia
+        exp_titles = {exp["id"]: exp.get("title", "") for exp in experiences}
+        for r in ratings:
+            r["experience_title"] = exp_titles.get(r["experience_id"], r["experience_id"])
     except Exception:
-        print("Error obteniendo experiencias del guía")
-        flash("No se pudieron cargar las experiencias del guía.", "danger")
-    return render_template("guide_panel.html", title="Panel de Guía", experiences=experiences)
+        print("Error obteniendo experiencias o valoraciones del guía")
+        flash("No se pudieron cargar las experiencias o valoraciones del guía.", "danger")
+    return render_template("guide_panel.html", title="Panel de Guía", experiences=experiences, ratings=ratings)
 
 @app.route("/admin-panel")
 def admin_panel():
@@ -56,16 +69,23 @@ def new_item():
     """Ruta para crear un nuevo ítem."""
     if request.method == "POST":
         # Recoge los datos del formulario.
+        cupo_raw = request.form.get("cupo")
+        try:
+            cupo = int(float(cupo_raw)) if cupo_raw and float(cupo_raw) > 0 else 1
+        except Exception:
+            cupo = 1
+        
         item_data = {
             "title": request.form.get("title"),
             "description": request.form.get("description"),
             "price": float(request.form.get("price")),
-            "guide": session.get("username")
+            "guide": session.get("username"),
+            "cupo": int(cupo)
         }
         # Envía los datos al API Gateway para crear un nuevo recurso.
         try:
-            resp = requests.post(f"{API_GATEWAY_URL}/api/v1/experiences/experiences", json=item_data, timeout=5)
-            if resp.status_code == 200:
+            resp = requests.post(f"{API_GATEWAY_URL}/api/v1/experiences/experiences", json=item_data, timeout=10)
+            if resp.status_code in [200, 201]:
                 flash("Experiencia creada con éxito.", "success")
             else:
                 flash("No se pudo crear la experiencia.", "danger")
@@ -91,7 +111,8 @@ def experiences():
     """Lista de experiencias obtenidas desde el API Gateway."""
     exps = []
     try:
-        if session.get("role") == "guia":
+        role = session.get("role")
+        if role == "guia":
             guide = session.get("username")
             if not guide:
                 flash("No se pudo identificar al guía logueado.", "danger")
@@ -103,6 +124,9 @@ def experiences():
             resp = requests.get(f"{API_GATEWAY_URL}/api/v1/experiences/experiences", timeout=5)
             data = resp.json()
             exps = data.get("experiences") or data
+            # Si es turista, filtrar solo las experiencias con cupo >= 1
+            if role == "turista":
+                exps = [exp for exp in exps if (exp.get('cupo', 0) if isinstance(exp, dict) else getattr(exp, 'cupo', 0)) >= 1]
     except requests.exceptions.RequestException as e:
         print(f"Error obteniendo experiencias: {e}")
         flash("No se pudieron cargar las experiencias.", "danger")
@@ -113,14 +137,32 @@ def experiences():
 def reserve(exp_id):
     if request.method == "POST":
         # Recolectar datos del formulario
+        num_personas_raw = request.form.get("num_personas")
+        try:
+            num_personas = int(num_personas_raw) if num_personas_raw and int(num_personas_raw) > 0 else 1
+        except Exception:
+            num_personas = 1
         reservation = {
             "experience_id": exp_id,
-            "user_id": request.form.get("user_id", "anonymous"),
+            "user_id": session.get("username", request.form.get("user_id", "anonymous")),
             "date": request.form.get("date"),
-            "notes": request.form.get("notes", "")
+            "notes": request.form.get("notes", ""),
+            "num_personas": num_personas
         }
         try:
             resp = requests.post(f"{API_GATEWAY_URL}/api/v1/reservations/reservations", json=reservation, timeout=5)
+            # Manejar errores 400 (por ejemplo, cupos insuficientes) con mensaje amigable
+            if resp.status_code == 400:
+                try:
+                    data = resp.json()
+                    detail = data.get("detail") or data.get("message") or str(data)
+                except Exception:
+                    detail = resp.text
+                low = detail.lower() if isinstance(detail, str) else ""
+                if "cupo" in low or "cupos" in low or "no hay" in low:
+                    return render_template("message.html", title="Sin cupos", message="No hay cupos disponibles para esa fecha o cantidad de personas.")
+                return render_template("message.html", title="Error", message=f"Error creando reserva: {detail}")
+
             resp.raise_for_status()
             return render_template("message.html", title="Reserva creada", message="Reserva creada correctamente.")
         except requests.exceptions.RequestException as e:
@@ -131,9 +173,43 @@ def reserve(exp_id):
 
 @app.route("/experiences/<string:exp_id>/rate", methods=["GET", "POST"])
 def rate(exp_id):
+    # Check if user can rate: user must have a reservation for this experience
+    can_rate = False
+    username = session.get("username")
+    if username:
+        try:
+            resp_check = requests.get(f"{API_GATEWAY_URL}/api/v1/reservations/reservations?user_id={username}", timeout=5)
+            resp_check.raise_for_status()
+            data_check = resp_check.json()
+            reservations_list = data_check.get("reservations") if isinstance(data_check, dict) and data_check.get("reservations") else data_check
+            # reservations_list expected to be a list of reservations with experience_id and date
+            from datetime import datetime
+            for r in reservations_list:
+                try:
+                    date_str = r.get("date")
+                    attended = r.get("attended", False)
+                    parsed = None
+                    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d"):
+                        try:
+                            parsed = datetime.strptime(date_str, fmt).date()
+                            break
+                        except Exception:
+                            continue
+                    if parsed:
+                        today = datetime.utcnow().date()
+                        # Permitir valorar solo si la reserva está marcada como vivida y la experiencia coincide
+                        if attended and str(r.get("experience_id")) == str(exp_id):
+                            can_rate = True
+                            break
+                except Exception:
+                    continue
+        except Exception:
+            can_rate = False
+
     if request.method == "POST":
         rating = {
-            "user_id": request.form.get("user_id", "anonymous"),
+            "user_id": session.get("username", "anonymous"),
+            "username": session.get("username", "anonymous"),
             "experience_id": exp_id,
             "comment": request.form.get("comment", ""),
             "rating": int(request.form.get("rating", 5))
@@ -145,7 +221,73 @@ def rate(exp_id):
         except requests.exceptions.RequestException as e:
             return render_template("message.html", title="Error", message=f"Error creando valoración: {e}")
 
-    return render_template("rate.html", title="Valorar", exp_id=exp_id)
+    return render_template("rate.html", title="Valorar", exp_id=exp_id, can_rate=can_rate)
+
+
+@app.route("/my-reservations")
+def my_reservations():
+    # Solo mostrar a turistas
+    if not session.get("username") or session.get("role") != "turista":
+        flash("Solo los turistas pueden ver sus reservas.", "danger")
+        return redirect(url_for("index"))
+    username = session.get("username")
+    reservations = []
+    try:
+        resp = requests.get(f"{API_GATEWAY_URL}/api/v1/reservations/reservations?user_id={username}", timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        reservations = data.get("reservations") if isinstance(data, dict) and data.get("reservations") else data
+        from datetime import datetime
+        enriched = []
+        for r in reservations:
+            exp_id = r.get("experience_id")
+            title = exp_id
+            # intentar obtener título de la experiencia
+            try:
+                resp_exp = requests.get(f"{API_GATEWAY_URL}/api/v1/experiences/experiences/{exp_id}", timeout=5)
+                if resp_exp.status_code == 200:
+                    exp_data = resp_exp.json().get("experience")
+                    if exp_data and exp_data.get("title"):
+                        title = exp_data.get("title")
+                    else:
+                        title = "Experiencia no disponible"
+                else:
+                    title = "Experiencia no disponible"
+            except Exception:
+                title = "Experiencia no disponible"
+
+            attended = bool(r.get("attended", False))
+
+            enriched.append({
+                "id": r.get("id") or r.get("_id"),
+                "experience_id": exp_id,
+                "title": title,
+                "date": r.get("date"),
+                "notes": r.get("notes", ""),
+                "attended": attended,
+                "can_rate": attended
+            })
+        reservations = enriched
+    except requests.exceptions.RequestException as e:
+        print(f"Error obteniendo reservas: {e}")
+        flash("No se pudieron cargar las reservas.", "danger")
+    return render_template("my_reservations.html", title="Mis reservas", reservations=reservations)
+
+
+@app.route("/confirm-attended/<string:reservation_id>", methods=["POST"])
+def confirm_attended(reservation_id):
+    if not session.get("username"):
+        flash("Debes iniciar sesión para confirmar asistencia.", "danger")
+        return redirect(url_for("login"))
+    try:
+        resp = requests.post(f"{API_GATEWAY_URL}/api/v1/reservations/reservations/{reservation_id}/attend", timeout=5)
+        if resp.status_code == 200:
+            flash("Reserva marcada como 'vivida'. Ahora puedes valorar.", "success")
+        else:
+            flash("No se pudo confirmar la asistencia.", "danger")
+    except requests.exceptions.RequestException as e:
+        flash(f"Error confirmando asistencia: {e}", "danger")
+    return redirect(url_for("my_reservations"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -206,9 +348,14 @@ def new_experience():
         price = request.form["price"]
         try:
             guide = session.get("username")
+            cupo_raw = request.form.get("cupo")
+            try:
+                cupo = int(float(cupo_raw)) if cupo_raw and float(cupo_raw) > 0 else 1
+            except Exception:
+                cupo = 1
             resp = requests.post(
                 f"{API_GATEWAY_URL}/api/v1/experiences/experiences",
-                json={"title": title, "description": description, "price": price, "guide": guide},
+                json={"title": title, "description": description, "price": float(price), "guide": guide, "cupo": cupo},
                 timeout=5
             )
             if resp.status_code in [200, 201]:
@@ -269,14 +416,19 @@ def edit_experience(exp_id):
                 if existing and existing.get("guide"):
                     guide_owner = existing.get("guide")
             except Exception:
-                # Fall back to current user if we cannot fetch existing
                 guide_owner = session.get("username")
 
+        cupo_raw = request.form.get("cupo")
+        try:
+            cupo = int(float(cupo_raw)) if cupo_raw and float(cupo_raw) > 0 else 1
+        except Exception:
+            cupo = 1
         updated_data = {
             "title": request.form.get("title"),
             "description": request.form.get("description"),
             "price": float(request.form.get("price")),
-            "guide": guide_owner
+            "guide": guide_owner,
+            "cupo": cupo
         }
         try:
             resp = requests.put(f"{API_GATEWAY_URL}/api/v1/experiences/experiences/{exp_id}", json=updated_data, timeout=5)
@@ -286,7 +438,6 @@ def edit_experience(exp_id):
                 flash("No se pudo actualizar la experiencia.", "danger")
         except Exception:
             flash("Error actualizando la experiencia.", "danger")
-        # Redirige según rol
         if session.get("role") == "admin":
             return redirect(url_for("admin_experiences"))
         return redirect(url_for("guide_panel"))

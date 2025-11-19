@@ -10,6 +10,7 @@
                 <p>{{ exp.description or exp.get('description') }}</p>
                 <p><strong>Guía:</strong> {{ exp.guide or exp.get('guide', 'N/A') }}</p>
                 <p><strong>Precio:</strong> ${{ exp.price or exp.get('price', '0') }}</p>
+                <p><strong>Cupo disponible:</strong> {{ exp.cupo or exp.get('cupo', 'N/A') }}</p>
                 <div class="actions">
                     {% if session.role == 'guia' %}
                         <a class="btn warning" href="{{ url_for('edit_experience', exp_id=exp.get('id') or exp.get('title')) }}">Editar</a>
@@ -18,7 +19,7 @@
                         </form>
                     {% else %}
                         <a class="btn" href="{{ url_for('reserve', exp_id=exp.get('id') or exp.get('title')) }}">Reservar</a>
-                        <a class="btn outline" href="{{ url_for('rate', exp_id=exp.get('id') or exp.get('title')) }}">Valorar</a>
+                        <!-- 'Valorar' button removed from listing per request -->
                     {% endif %}
                 </div>
             </article>

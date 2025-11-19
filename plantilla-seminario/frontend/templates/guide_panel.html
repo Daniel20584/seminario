@@ -16,33 +16,84 @@
         </div>
     </header>
     <main>
-        <div class="container">
-            <h2>Gestión de Experiencias</h2>
-            <p>Aquí puedes crear, editar y gestionar tus experiencias.</p>
-            <a href="/experiences/new">Crear nueva experiencia</a>
-            <hr>
-            {% if experiences %}
-                <h3>Tus experiencias creadas</h3>
-                <div class="grid">
-                {% for exp in experiences %}
-                    {% if exp is mapping %}
-                        <article class="card">
-                            <h4>{{ exp.title }}</h4>
-                            <p>{{ exp.description }}</p>
-                            <p><strong>Precio:</strong> ${{ exp.price }}</p>
-                        </article>
-                    {% endif %}
-                {% endfor %}
+        <div class="container" style="padding-bottom:4.5em;">
+            <nav class="tabs">
+                <a href="#experiencias" class="tab active" onclick="showTab('experiencias')">Experiencias</a>
+                <a href="#valoraciones" class="tab" onclick="showTab('valoraciones')">Valoraciones</a>
+            </nav>
+            <div id="experiencias" class="tab-content" style="display:block;">
+                <h2>Gestión de Experiencias</h2>
+                <p>Aquí puedes crear, editar y gestionar tus experiencias.</p>
+                <a href="/experiences/new">Crear nueva experiencia</a>
+                <hr>
+                {% if experiences %}
+                    <h3>Tus experiencias creadas</h3>
+                    <div class="grid">
+                    {% for exp in experiences %}
+                        {% if exp is mapping %}
+                            <article class="card">
+                                <h4>{{ exp.title }}</h4>
+                                <p>{{ exp.description }}</p>
+                                <p><strong>Precio:</strong> ${{ exp.price }}</p>
+                            </article>
+                        {% endif %}
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p>No has creado ninguna experiencia aún.</p>
+                {% endif %}
+            </div>
+            <div id="valoraciones" class="tab-content" style="display:none;">
+                <h2>Valoraciones de tus experiencias</h2>
+                {% if ratings %}
+                    <table class="table table-ratings">
+                        <thead>
+                            <tr>
+                                <th>Experiencia</th>
+                                <th>Usuario</th>
+                                <th>Puntaje</th>
+                                <th>Comentario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in ratings %}
+                            <tr>
+                                <td><strong>{{ r.experience_title }}</strong></td>
+                                <td>{{ r.username }}</td>
+                                <td><span class="rating-stars">{% for i in range(r.rating) %}★{% endfor %}</span> ({{ r.rating }})</td>
+                                <td>{{ r.comment }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No hay valoraciones para tus experiencias.</p>
+                {% endif %}
+            </div>
+        </div>
+        <script>
+            function showTab(tab) {
+                document.getElementById('experiencias').style.display = tab === 'experiencias' ? 'block' : 'none';
+                document.getElementById('valoraciones').style.display = tab === 'valoraciones' ? 'block' : 'none';
+                var tabs = document.querySelectorAll('.tab');
+                tabs.forEach(function(t){ t.classList.remove('active'); });
+                document.querySelector('.tab[href="#'+tab+'"]').classList.add('active');
+            }
+        </script>
+        <style>
+            .tabs { display: flex; gap: 1em; margin-bottom: 1em; }
+            .tab { padding: 0.5em 1em; background: #eee; border-radius: 5px 5px 0 0; text-decoration: none; color: #333; cursor: pointer; }
+            .tab.active { background: #fff; border-bottom: 2px solid #333; font-weight: bold; }
+            .tab-content { padding: 1em; background: #fff; border-radius: 0 0 5px 5px; box-shadow: 0 2px 8px #eee; }
+            .table-ratings { width: 100%; border-collapse: collapse; margin-top: 1em; }
+            .table-ratings th, .table-ratings td { border: 1px solid #ddd; padding: 0.75em; text-align: left; }
+            .table-ratings th { background: #f5f5f5; }
+            .rating-stars { color: #f7b731; font-size: 1.2em; }
+        </style>
+            <footer style="background:#222; color:#fff; text-align:center; padding:1em 0; width:100%;">
+                <div class="container">
+                    <p style="margin:0;">&copy; 2025 Marketplace de Experiencias Turísticas</p>
                 </div>
-            {% else %}
-                <p>No has creado ninguna experiencia aún.</p>
-            {% endif %}
-        </div>
-    </main>
-    <footer>
-        <div class="container">
-            <p>&copy; 2025 Marketplace de Experiencias Turísticas</p>
-        </div>
-    </footer>
+            </footer>
 </body>
 </html>

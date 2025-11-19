@@ -5,3 +5,4 @@ class Experience(BaseModel):
     description: str
     price: float
     guide: str  # Campo obligatorio para identificar al creador
+    cupo: int   # Cupo máximo de asistentes

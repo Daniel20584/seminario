@@ -83,9 +83,9 @@ services:
     ports:
       - "8004:8004"
     environment:
-      - DATABASE_URL=postgresql://user:password@reservations-db:5432/reservations_db
+      - DATABASE_URL=mongodb://mongo:27017/reservations_db
     depends_on:
-      - reservations-db
+      - mongo
 
   # Base de datos para el servicio de reservas
   reservations-db:

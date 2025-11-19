@@ -14,6 +14,9 @@
                 {% if session.get('username') %}
                     <a href="{{ url_for('index') }}">Inicio</a> |
                     <a href="{{ url_for('experiences') }}">Experiencias</a>
+                    {% if session.get('role') == 'turista' %}
+                        | <a href="{{ url_for('my_reservations') }}">Mis reservas</a>
+                    {% endif %}
                     {% if session.get('role') == 'guia' or session.get('role') == 'admin' %}
                         | <a href="/experiences/new">Crear experiencia</a>
                     {% endif %}

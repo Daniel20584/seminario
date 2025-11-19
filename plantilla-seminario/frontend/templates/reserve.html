@@ -3,15 +3,54 @@
 {% block content %}
     <h2>Reservar experiencia {{ exp_id }}</h2>
     <form method="post">
-        <label for="user_id">Tu nombre (id):</label>
-        <input type="text" id="user_id" name="user_id" placeholder="usuario123">
+        {% if session.get('username') %}
+            <p>Reservando como: <strong>{{ session.get('username') }}</strong></p>
+            <input type="hidden" id="user_id" name="user_id" value="{{ session.get('username') }}">
+        {% else %}
+            <label for="user_id">Tu nombre (id):</label>
+            <input type="text" id="user_id" name="user_id" placeholder="usuario123">
+        {% endif %}
 
         <label for="date">Fecha:</label>
         <input type="date" id="date" name="date" required>
+        <p id="date-error" style="color: #b93030; display:none;">Fecha no válida</p>
+
+        <label for="num_personas">Cantidad de personas:</label>
+        <input type="number" id="num_personas" name="num_personas" min="1" value="1" required>
 
         <label for="notes">Notas:</label>
         <textarea id="notes" name="notes"></textarea>
 
         <button class="btn" type="submit">Confirmar reserva</button>
     </form>
+    <script>
+        (function(){
+            const dateInput = document.getElementById('date');
+            const form = dateInput && dateInput.form;
+            const errorEl = document.getElementById('date-error');
+            if(!dateInput || !form) return;
+
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth()+1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const min = `${yyyy}-${mm}-${dd}`;
+            dateInput.min = min;
+
+            form.addEventListener('submit', function(e){
+                // If the selected date is before today, prevent submit and show friendly message
+                const val = dateInput.value;
+                if(!val) return; // required attribute will handle empty
+                if(val < min){
+                    e.preventDefault();
+                    errorEl.style.display = 'block';
+                    errorEl.textContent = 'Fecha no válida';
+                    dateInput.focus();
+                } else {
+                    // hide error if previously shown
+                    errorEl.style.display = 'none';
+                }
+            });
+        })();
+    </script>
 {% endblock %}
